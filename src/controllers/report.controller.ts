@@ -48,18 +48,15 @@ export class ReportController {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    let fullText = "";
     try {
       for await (const chunk of aiService.streamInsights({
         context: processed.context,
         summary: processed.summary
       })) {
-        fullText += chunk;
         res.write(`event: chunk\ndata: ${JSON.stringify({ chunk })}\n\n`);
       }
 
-      const insights = aiService.parseStructuredOutput(fullText);
-      res.write(`event: done\ndata: ${JSON.stringify({ insights })}\n\n`);
+      res.write("event: done\ndata: {}\n\n");
       res.end();
     } catch (error) {
       res.write(

@@ -1,6 +1,12 @@
 import PDFDocument from "pdfkit";
 import { SalesSummary, StructuredInsights } from "../types/sales";
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2
+});
+
 export class ReportService {
   async generatePdfReport(input: {
     companyName?: string;
@@ -18,19 +24,19 @@ export class ReportService {
       doc.on("end", () => resolve(Buffer.concat(chunks)));
       doc.on("error", reject);
 
-      doc.fontSize(20).text("AI Sales Analytics Report", { align: "center" });
+      doc.font("Helvetica-Bold").fontSize(22).fillColor("#111111").text("AI Sales Analytics Report", { align: "center" });
       doc.moveDown(0.8);
-      doc.fontSize(12).fillColor("#444444").text(`Company: ${companyName}`);
+      doc.font("Helvetica").fontSize(11).fillColor("#444444").text(`Company: ${companyName}`);
       doc.text(`Period: ${period}`);
-      doc.moveDown(1);
+      doc.moveDown(1.2);
 
       this.renderSection(doc, "Executive Summary", [insights.executiveSummary]);
       this.renderSection(doc, "Key Metrics", [
-        `Total Sales: $${summary.totalSales.toFixed(2)}`,
+        `Total Sales: ${CURRENCY_FORMATTER.format(summary.totalSales)}`,
         `Total Orders: ${summary.totalOrders}`,
-        `Average Order Value: $${summary.averageOrderValue.toFixed(2)}`,
-        `Top Product: ${summary.topProduct?.name ?? "N/A"} ($${summary.topProduct?.revenue.toFixed(2) ?? "0.00"})`,
-        `Lowest Product: ${summary.lowestProduct?.name ?? "N/A"} ($${summary.lowestProduct?.revenue.toFixed(2) ?? "0.00"})`,
+        `Average Order Value: ${CURRENCY_FORMATTER.format(summary.averageOrderValue)}`,
+        `Top Product: ${summary.topProduct?.name ?? "N/A"} (${CURRENCY_FORMATTER.format(summary.topProduct?.revenue ?? 0)})`,
+        `Lowest Product: ${summary.lowestProduct?.name ?? "N/A"} (${CURRENCY_FORMATTER.format(summary.lowestProduct?.revenue ?? 0)})`,
         `Trend: ${summary.trend.toUpperCase()}`
       ]);
       this.renderSection(doc, "Key Insights", insights.keyInsights, true);
@@ -42,17 +48,39 @@ export class ReportService {
   }
 
   private renderSection(doc: PDFKit.PDFDocument, title: string, lines: string[], numbered = false): void {
-    doc.fontSize(14).fillColor("#111111").text(title, { underline: true });
-    doc.moveDown(0.4);
+    this.ensureSpace(doc, 80);
+
+    doc.font("Helvetica-Bold").fontSize(14).fillColor("#111111").text(title);
+    doc.moveDown(0.5);
 
     lines.forEach((line, index) => {
+      this.ensureSpace(doc, 40);
       const text = numbered ? `${index + 1}. ${line}` : line;
-      doc.fontSize(11).fillColor("#222222").text(text, {
-        paragraphGap: 4,
-        lineGap: 1
-      });
+
+      doc
+        .font("Helvetica")
+        .fontSize(11)
+        .fillColor("#222222")
+        .text(text, {
+          paragraphGap: 6,
+          lineGap: 2
+        });
     });
 
-    doc.moveDown(0.8);
+    doc.moveDown(0.9);
+    doc
+      .moveTo(doc.page.margins.left, doc.y)
+      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .strokeColor("#E6E6E6")
+      .lineWidth(1)
+      .stroke();
+    doc.moveDown(0.9);
+  }
+
+  private ensureSpace(doc: PDFKit.PDFDocument, minimumHeight: number): void {
+    const bottomLimit = doc.page.height - doc.page.margins.bottom;
+    if (doc.y + minimumHeight > bottomLimit) {
+      doc.addPage();
+    }
   }
 }
