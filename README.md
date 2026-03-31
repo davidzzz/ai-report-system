@@ -1,137 +1,240 @@
-# AI Report System API
+# 🤖 AI Report System
 
-Production-ready backend API that accepts sales data, generates AI-powered analytics, and returns a PDF report.
+Production-grade AI-powered sales analytics engine that transforms structured business data into executive-ready insights using deterministic LLM outputs.
 
-## Project Structure
+---
 
-```bash
-ai-report-system/
-├── src/
-│   ├── app.ts
-│   ├── config/
-│   │   └── env.ts
-│   ├── controllers/
-│   │   └── report.controller.ts
-│   ├── middlewares/
-│   │   ├── rate-limit.ts
-│   │   └── request-logger.ts
-│   ├── routes/
-│   │   └── report.routes.ts
-│   ├── services/
-│   │   ├── aggregation.service.ts
-│   │   ├── ai.service.ts
-│   │   ├── preprocess.service.ts
-│   │   └── report.service.ts
-│   ├── types/
-│   │   └── sales.ts
-│   └── utils/
-│       ├── async-handler.ts
-│       ├── http-error.ts
-│       ├── prompt-builder.ts
-│       └── validation.ts
-├── .env.example
-├── .gitignore
-├── package.json
-├── tsconfig.json
-└── README.md
+## 🚀 Overview
+
+AI Report System is a backend service that:
+
+* Processes sales data
+* Generates structured business insights using AI
+* Enforces strict output schemas
+* Supports both streaming and non-streaming responses
+
+Unlike typical AI demos, this system is built with **reliability, determinism, and production constraints in mind**.
+
+---
+
+## ✨ Key Features
+
+### 🧠 Structured AI Output
+
+* Uses JSON Schema enforcement
+* Guarantees predictable responses
+* Eliminates hallucinated formats
+
+### 🧱 Prompt Engineering System
+
+* Modular `PromptBuilder`
+* Role + Task + Constraints design
+* Token-efficient structured prompts
+
+### 🔁 Reliability Layer
+
+* Retry mechanism
+* Input size validation
+* Schema validation after response
+
+### ⚡ Streaming Support
+
+* Real-time AI response streaming
+* Fallback to standard response if streaming unavailable
+
+### 🔒 Type Safety
+
+* Strong TypeScript validation
+* Runtime schema enforcement
+
+---
+
+## 🏗️ Architecture
+
+```
+                ┌──────────────────────────┐
+                │   Client / Frontend      │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │   API Layer / Controller │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │       AiService          │
+                │--------------------------│
+                │ • Prompt generation      │
+                │ • Retry logic            │
+                │ • Streaming handling     │
+                │ • Schema enforcement     │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │     PromptBuilder        │
+                │--------------------------│
+                │ • Role instruction       │
+                │ • Task definition        │
+                │ • Constraints            │
+                │ • Output contract        │
+                │ • Data injection         │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │      OpenAI API          │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │ Structured JSON Response │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │  Validation Layer        │
+                │--------------------------│
+                │ • Type checks            │
+                │ • Length constraints     │
+                │ • Final output shaping   │
+                └──────────────────────────┘
 ```
 
-## Setup
+---
 
-1. Install dependencies:
+## 📦 Project Structure
+
+```
+src/
+├── services/
+│   └── ai.service.ts        # Core AI orchestration
+├── utils/
+│   └── prompt-builder.ts    # Prompt construction
+├── types/
+│   └── sales.ts             # Domain types
+├── config/
+│   └── env.ts               # Environment config
+```
+
+---
+
+## 🧠 How It Works
+
+### 1. Data Input
+
+Preprocessed sales data is passed into the system:
+
+* Business context
+* Aggregated metrics
+
+### 2. Prompt Construction
+
+`PromptBuilder` creates a structured prompt:
+
+* Role definition
+* Task instruction
+* Constraints
+* Output contract (strict JSON)
+
+### 3. AI Processing
+
+`AiService` sends request to OpenAI:
+
+* Uses low temperature (0.2)
+* Enforces JSON schema output
+
+### 4. Validation
+
+Response is validated:
+
+* Required fields
+* Exact array lengths
+* Type safety
+
+### 5. Output
+
+Returns clean, structured insights:
+
+```json
+{
+  "executiveSummary": "...",
+  "keyInsights": ["...", "...", "..."],
+  "problems": ["...", "..."],
+  "recommendations": ["...", "...", "..."]
+}
+```
+
+---
+
+## 🛠️ Tech Stack
+
+* Node.js
+* TypeScript
+* OpenAI API (Responses API)
+
+---
+
+## ⚙️ Design Principles
+
+### Determinism over Creativity
+
+AI output is tightly controlled to ensure consistency.
+
+### Validation First
+
+Never trust AI output without validation.
+
+### Modular Prompting
+
+Prompts are treated as first-class architecture.
+
+### Fail Gracefully
+
+Retries + fallbacks prevent system crashes.
+
+---
+
+## 🚧 Future Improvements
+
+* Request-level logging & tracing
+* Cost tracking per API call
+* Latency monitoring
+* Caching layer for repeated queries
+* Multi-model fallback strategy
+
+---
+
+## 💡 Why This Project Stands Out
+
+This is not a simple AI integration.
+
+It demonstrates:
+
+* Real-world AI system design
+* Controlled LLM usage
+* Backend engineering maturity
+* Production-aware thinking
+
+---
+
+## 📌 Getting Started
 
 ```bash
 npm install
-```
-
-2. Create env file:
-
-```bash
-cp .env.example .env
-```
-
-3. Add your OpenAI API key to `.env`.
-
-4. Run development server:
-
-```bash
 npm run dev
 ```
 
-Server starts at `http://localhost:3000` by default.
+Set environment variables:
 
-## Environment Variables
-
-```env
-PORT=3000
-OPENAI_API_KEY=your_openai_api_key
-OPENAI_MODEL=gpt-4.1-mini
-REPORT_RATE_LIMIT_WINDOW_MS=60000
-REPORT_RATE_LIMIT_MAX=30
+```
+OPENAI_API_KEY=your_key
+OPENAI_MODEL=your_model
 ```
 
-## API
+---
 
-### `POST /report/generate`
+## 🧑‍💻 Author
 
-Generates and returns a PDF report from sales data.
-
-#### Request Body (JSON)
-
-```json
-{
-  "companyName": "Acme Inc",
-  "period": "Q1 2026",
-  "sales": [
-    {
-      "date": "2026-01-01",
-      "product": "Widget A",
-      "region": "North America",
-      "unitsSold": 120,
-      "unitPrice": 49.99
-    },
-    {
-      "date": "2026-01-02",
-      "product": "Widget B",
-      "region": "Europe",
-      "unitsSold": 85,
-      "unitPrice": 79.99
-    }
-  ]
-}
-```
-
-#### Success Response
-
-- `200 OK`
-- `Content-Type: application/pdf`
-- Binary PDF file (`sales-report.pdf`)
-
-#### Error Response Shape
-
-```json
-{
-  "error": {
-    "code": "INVALID_PAYLOAD",
-    "message": "Request body must include a non-empty 'sales' array.",
-    "requestId": "e2ad0f4b-...",
-    "details": {}
-  }
-}
-```
-
-## Production Readiness Improvements
-
-- Input validation with clear 4xx errors for malformed sales records.
-- In-memory rate limiting on `/report/*` endpoints.
-- Structured request logging with `x-request-id` and latency.
-- Modular AI prompt builder for maintainability.
-- Data preprocessing and normalization before AI analysis.
-- Centralized error handling with stable error codes.
-
-## Build & Run
-
-```bash
-npm run build
-npm start
-```
+Built as a portfolio project to demonstrate production-grade AI backend engineering.
