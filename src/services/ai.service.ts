@@ -30,7 +30,33 @@ export class AiService {
     return this.parseStructuredOutput(raw);
   }
 
-  private parseStructuredOutput(raw: string): StructuredInsights {
+  async *streamInsights(input: {
+    context: PreprocessedSalesContext;
+    summary: SalesSummary;
+  }): AsyncGenerator<string> {
+    const prompt = PromptBuilder.buildBusinessInsightsPrompt(input);
+
+    // SDK event stream support varies by version; use runtime guards for resilience.
+    const streamFactory = (this.client.responses as unknown as { stream?: (params: unknown) => Promise<AsyncIterable<unknown>> }).stream;
+    if (!streamFactory) {
+      throw new Error("Streaming is not supported by the configured OpenAI SDK version.");
+    }
+
+    const stream = await streamFactory({
+      model: env.openAiModel,
+      input: prompt,
+      temperature: 0.2
+    });
+
+    for await (const event of stream) {
+      const typedEvent = event as { type?: string; delta?: string };
+      if (typedEvent.type === "response.output_text.delta" && typedEvent.delta) {
+        yield typedEvent.delta;
+      }
+    }
+  }
+
+  parseStructuredOutput(raw: string): StructuredInsights {
     try {
       const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       const parsed = JSON.parse(cleaned) as Partial<StructuredInsights>;
