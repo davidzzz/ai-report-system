@@ -12,12 +12,21 @@ export interface SalesPayload {
   sales: SaleRecord[];
 }
 
-export interface AggregatedSales {
-  totalRevenue: number;
-  totalUnitsSold: number;
+export type SalesTrend = "up" | "down" | "stable";
+
+export interface ProductMetric {
+  name: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface SalesSummary {
+  totalSales: number;
+  totalOrders: number;
   averageOrderValue: number;
-  topProductByRevenue: { name: string; revenue: number } | null;
-  topRegionByRevenue: { name: string; revenue: number } | null;
+  topProduct: ProductMetric | null;
+  lowestProduct: ProductMetric | null;
+  trend: SalesTrend;
 }
 
 export interface PreprocessedSalesContext {
@@ -29,7 +38,11 @@ export interface PreprocessedSalesContext {
 }
 
 export interface StructuredInsights {
-  summary: string;
-  insights: string[];
+  executiveSummary: string;
+  keyInsights: string[];
+  problems: string[];
   recommendations: string[];
 }
+
+// Backward-compatible alias used by existing code while migration completes.
+export type AggregatedSales = SalesSummary;
