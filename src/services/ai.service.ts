@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { env } from "../config/env";
-import { AggregatedSales, PreprocessedSalesContext, StructuredInsights } from "../types/sales";
+import { PreprocessedSalesContext, SalesSummary, StructuredInsights } from "../types/sales";
 import { PromptBuilder } from "../utils/prompt-builder";
 
 export class AiService {
@@ -12,7 +12,7 @@ export class AiService {
 
   async generateInsights(input: {
     context: PreprocessedSalesContext;
-    aggregated: AggregatedSales;
+    summary: SalesSummary;
   }): Promise<StructuredInsights> {
     const prompt = PromptBuilder.buildBusinessInsightsPrompt(input);
 
@@ -36,18 +36,21 @@ export class AiService {
       const parsed = JSON.parse(cleaned) as Partial<StructuredInsights>;
 
       if (
-        typeof parsed.summary !== "string" ||
-        !Array.isArray(parsed.insights) ||
+        typeof parsed.executiveSummary !== "string" ||
+        !Array.isArray(parsed.keyInsights) ||
+        !Array.isArray(parsed.problems) ||
         !Array.isArray(parsed.recommendations) ||
-        parsed.insights.length !== 3 ||
+        parsed.keyInsights.length !== 3 ||
+        parsed.problems.length !== 2 ||
         parsed.recommendations.length !== 3
       ) {
         throw new Error("AI response schema is invalid.");
       }
 
       return {
-        summary: parsed.summary,
-        insights: parsed.insights.map(String),
+        executiveSummary: parsed.executiveSummary,
+        keyInsights: parsed.keyInsights.map(String),
+        problems: parsed.problems.map(String),
         recommendations: parsed.recommendations.map(String)
       };
     } catch (error) {

@@ -18,13 +18,13 @@ function assertValidSaleRecord(record: unknown, index: number): asserts record i
     }
   }
 
-  if (typeof candidate.unitsSold !== "number" || candidate.unitsSold < 0) {
+  if (typeof candidate.unitsSold !== "number" || !Number.isFinite(candidate.unitsSold) || candidate.unitsSold < 0) {
     throw new HttpError(400, `sales[${index}].unitsSold must be a non-negative number`, {
       code: "INVALID_SALES_FIELD"
     });
   }
 
-  if (typeof candidate.unitPrice !== "number" || candidate.unitPrice < 0) {
+  if (typeof candidate.unitPrice !== "number" || !Number.isFinite(candidate.unitPrice) || candidate.unitPrice < 0) {
     throw new HttpError(400, `sales[${index}].unitPrice must be a non-negative number`, {
       code: "INVALID_SALES_FIELD"
     });

@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { AggregationService } from "../services/aggregation.service";
 import { AiService } from "../services/ai.service";
-import { PreprocessService } from "../services/preprocess.service";
+import { DataService } from "../services/data.service";
 import { ReportService } from "../services/report.service";
 import { HttpError } from "../utils/http-error";
 import { validateSalesPayload } from "../utils/validation";
@@ -12,14 +11,14 @@ const reportService = new ReportService();
 export class ReportController {
   static async generate(req: Request, res: Response): Promise<void> {
     const payload = validateSalesPayload(req.body);
-    const normalizedPayload = PreprocessService.normalizePayload(payload);
-
-    const aggregated = AggregationService.aggregate(normalizedPayload.sales);
-    const context = PreprocessService.buildContext(normalizedPayload);
+    const processed = DataService.process(payload);
 
     let insights;
     try {
-      insights = await aiService.generateInsights({ context, aggregated });
+      insights = await aiService.generateInsights({
+        context: processed.context,
+        summary: processed.summary
+      });
     } catch (error) {
       throw new HttpError(502, "Failed to generate AI insights", {
         code: "AI_SERVICE_ERROR",
@@ -28,9 +27,9 @@ export class ReportController {
     }
 
     const pdfBuffer = await reportService.generatePdfReport({
-      companyName: normalizedPayload.companyName,
-      period: normalizedPayload.period,
-      aggregated,
+      companyName: processed.context.companyName,
+      period: processed.context.period,
+      summary: processed.summary,
       insights
     });
 
