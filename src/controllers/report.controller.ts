@@ -1,45 +1,35 @@
 import { Request, Response } from "express";
 import { AggregationService } from "../services/aggregation.service";
 import { AiService } from "../services/ai.service";
+import { PreprocessService } from "../services/preprocess.service";
 import { ReportService } from "../services/report.service";
-import { SalesPayload } from "../types/sales";
 import { HttpError } from "../utils/http-error";
+import { validateSalesPayload } from "../utils/validation";
 
 const aiService = new AiService();
 const reportService = new ReportService();
 
 export class ReportController {
   static async generate(req: Request, res: Response): Promise<void> {
-    const payload = req.body as SalesPayload;
+    const payload = validateSalesPayload(req.body);
+    const normalizedPayload = PreprocessService.normalizePayload(payload);
 
-    if (!payload?.sales || !Array.isArray(payload.sales) || payload.sales.length === 0) {
-      throw new HttpError(400, "Request body must include a non-empty 'sales' array.");
+    const aggregated = AggregationService.aggregate(normalizedPayload.sales);
+    const context = PreprocessService.buildContext(normalizedPayload);
+
+    let insights;
+    try {
+      insights = await aiService.generateInsights({ context, aggregated });
+    } catch (error) {
+      throw new HttpError(502, "Failed to generate AI insights", {
+        code: "AI_SERVICE_ERROR",
+        details: (error as Error).message
+      });
     }
-
-    for (const sale of payload.sales) {
-      if (
-        typeof sale.product !== "string" ||
-        typeof sale.region !== "string" ||
-        typeof sale.unitsSold !== "number" ||
-        typeof sale.unitPrice !== "number"
-      ) {
-        throw new HttpError(
-          400,
-          "Each sales record must include product, region, unitsSold(number), and unitPrice(number)."
-        );
-      }
-    }
-
-    const aggregated = AggregationService.aggregate(payload.sales);
-    const insights = await aiService.generateInsights({
-      companyName: payload.companyName,
-      period: payload.period,
-      aggregated
-    });
 
     const pdfBuffer = await reportService.generatePdfReport({
-      companyName: payload.companyName,
-      period: payload.period,
+      companyName: normalizedPayload.companyName,
+      period: normalizedPayload.period,
       aggregated,
       insights
     });

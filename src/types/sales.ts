@@ -20,6 +20,14 @@ export interface AggregatedSales {
   topRegionByRevenue: { name: string; revenue: number } | null;
 }
 
+export interface PreprocessedSalesContext {
+  companyName: string;
+  period: string;
+  recordCount: number;
+  dateRange: { start: string; end: string } | null;
+  sanitizedNotes: string[];
+}
+
 export interface StructuredInsights {
   summary: string;
   insights: string[];

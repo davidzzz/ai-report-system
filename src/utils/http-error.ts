@@ -1,9 +1,17 @@
 export class HttpError extends Error {
   statusCode: number;
+  code: string;
+  details?: unknown;
 
-  constructor(statusCode: number, message: string) {
+  constructor(statusCode: number, message: string, options?: { code?: string; details?: unknown }) {
     super(message);
-    this.statusCode = statusCode;
     this.name = "HttpError";
+    this.statusCode = statusCode;
+    this.code = options?.code ?? "HTTP_ERROR";
+    this.details = options?.details;
   }
+}
+
+export function isHttpError(error: unknown): error is HttpError {
+  return error instanceof HttpError;
 }
