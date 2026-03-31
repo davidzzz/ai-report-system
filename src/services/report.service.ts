@@ -1,14 +1,14 @@
 import PDFDocument from "pdfkit";
-import { AggregatedSales, StructuredInsights } from "../types/sales";
+import { SalesSummary, StructuredInsights } from "../types/sales";
 
 export class ReportService {
   async generatePdfReport(input: {
     companyName?: string;
     period?: string;
-    aggregated: AggregatedSales;
+    summary: SalesSummary;
     insights: StructuredInsights;
   }): Promise<Buffer> {
-    const { companyName = "Unknown Company", period = "Unknown Period", aggregated, insights } = input;
+    const { companyName = "Unknown Company", period = "Unknown Period", summary, insights } = input;
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50 });
@@ -19,44 +19,40 @@ export class ReportService {
       doc.on("error", reject);
 
       doc.fontSize(20).text("AI Sales Analytics Report", { align: "center" });
-      doc.moveDown();
-
-      doc.fontSize(12).text(`Company: ${companyName}`);
+      doc.moveDown(0.8);
+      doc.fontSize(12).fillColor("#444444").text(`Company: ${companyName}`);
       doc.text(`Period: ${period}`);
-      doc.moveDown();
+      doc.moveDown(1);
 
-      doc.fontSize(14).text("Summary", { underline: true });
-      doc.fontSize(11).text(insights.summary);
-      doc.moveDown();
-
-      doc.fontSize(14).text("Key Metrics", { underline: true });
-      doc.fontSize(11).text(`Total Revenue: $${aggregated.totalRevenue.toFixed(2)}`);
-      doc.text(`Total Units Sold: ${aggregated.totalUnitsSold}`);
-      doc.text(`Average Order Value: $${aggregated.averageOrderValue.toFixed(2)}`);
-      doc.text(
-        `Top Product by Revenue: ${aggregated.topProductByRevenue?.name ?? "N/A"} ($${
-          aggregated.topProductByRevenue?.revenue.toFixed(2) ?? "0.00"
-        })`
-      );
-      doc.text(
-        `Top Region by Revenue: ${aggregated.topRegionByRevenue?.name ?? "N/A"} ($${
-          aggregated.topRegionByRevenue?.revenue.toFixed(2) ?? "0.00"
-        })`
-      );
-      doc.moveDown();
-
-      doc.fontSize(14).text("Insights", { underline: true });
-      insights.insights.forEach((point, index) => {
-        doc.fontSize(11).text(`${index + 1}. ${point}`);
-      });
-      doc.moveDown();
-
-      doc.fontSize(14).text("Recommendations", { underline: true });
-      insights.recommendations.forEach((item, index) => {
-        doc.fontSize(11).text(`${index + 1}. ${item}`);
-      });
+      this.renderSection(doc, "Executive Summary", [insights.executiveSummary]);
+      this.renderSection(doc, "Key Metrics", [
+        `Total Sales: $${summary.totalSales.toFixed(2)}`,
+        `Total Orders: ${summary.totalOrders}`,
+        `Average Order Value: $${summary.averageOrderValue.toFixed(2)}`,
+        `Top Product: ${summary.topProduct?.name ?? "N/A"} ($${summary.topProduct?.revenue.toFixed(2) ?? "0.00"})`,
+        `Lowest Product: ${summary.lowestProduct?.name ?? "N/A"} ($${summary.lowestProduct?.revenue.toFixed(2) ?? "0.00"})`,
+        `Trend: ${summary.trend.toUpperCase()}`
+      ]);
+      this.renderSection(doc, "Key Insights", insights.keyInsights, true);
+      this.renderSection(doc, "Problems", insights.problems, true);
+      this.renderSection(doc, "Recommendations", insights.recommendations, true);
 
       doc.end();
     });
+  }
+
+  private renderSection(doc: PDFKit.PDFDocument, title: string, lines: string[], numbered = false): void {
+    doc.fontSize(14).fillColor("#111111").text(title, { underline: true });
+    doc.moveDown(0.4);
+
+    lines.forEach((line, index) => {
+      const text = numbered ? `${index + 1}. ${line}` : line;
+      doc.fontSize(11).fillColor("#222222").text(text, {
+        paragraphGap: 4,
+        lineGap: 1
+      });
+    });
+
+    doc.moveDown(0.8);
   }
 }

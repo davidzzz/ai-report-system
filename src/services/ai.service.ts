@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { env } from "../config/env";
-import { AggregatedSales, PreprocessedSalesContext, StructuredInsights } from "../types/sales";
+import { PreprocessedSalesContext, SalesSummary, StructuredInsights } from "../types/sales";
 import { PromptBuilder } from "../utils/prompt-builder";
 
 export class AiService {
@@ -12,7 +12,7 @@ export class AiService {
 
   async generateInsights(input: {
     context: PreprocessedSalesContext;
-    aggregated: AggregatedSales;
+    summary: SalesSummary;
   }): Promise<StructuredInsights> {
     const prompt = PromptBuilder.buildBusinessInsightsPrompt(input);
 
@@ -30,24 +30,53 @@ export class AiService {
     return this.parseStructuredOutput(raw);
   }
 
-  private parseStructuredOutput(raw: string): StructuredInsights {
+  async *streamInsights(input: {
+    context: PreprocessedSalesContext;
+    summary: SalesSummary;
+  }): AsyncGenerator<string> {
+    const prompt = PromptBuilder.buildBusinessInsightsPrompt(input);
+
+    // SDK event stream support varies by version; use runtime guards for resilience.
+    const streamFactory = (this.client.responses as unknown as { stream?: (params: unknown) => Promise<AsyncIterable<unknown>> }).stream;
+    if (!streamFactory) {
+      throw new Error("Streaming is not supported by the configured OpenAI SDK version.");
+    }
+
+    const stream = await streamFactory({
+      model: env.openAiModel,
+      input: prompt,
+      temperature: 0.2
+    });
+
+    for await (const event of stream) {
+      const typedEvent = event as { type?: string; delta?: string };
+      if (typedEvent.type === "response.output_text.delta" && typedEvent.delta) {
+        yield typedEvent.delta;
+      }
+    }
+  }
+
+  parseStructuredOutput(raw: string): StructuredInsights {
     try {
       const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
       const parsed = JSON.parse(cleaned) as Partial<StructuredInsights>;
 
       if (
-        typeof parsed.summary !== "string" ||
-        !Array.isArray(parsed.insights) ||
+        typeof parsed.executiveSummary !== "string" ||
+        !Array.isArray(parsed.keyInsights) ||
+        !Array.isArray(parsed.problems) ||
         !Array.isArray(parsed.recommendations) ||
-        parsed.insights.length !== 3 ||
+        parsed.keyInsights.length !== 3 ||
+        parsed.problems.length !== 2 ||
         parsed.recommendations.length !== 3
       ) {
         throw new Error("AI response schema is invalid.");
       }
 
       return {
-        summary: parsed.summary,
-        insights: parsed.insights.map(String),
+        executiveSummary: parsed.executiveSummary,
+        keyInsights: parsed.keyInsights.map(String),
+        problems: parsed.problems.map(String),
         recommendations: parsed.recommendations.map(String)
       };
     } catch (error) {
