@@ -8,20 +8,60 @@ export class PromptBuilder {
     const { context, summary } = input;
 
     return [
-      "Role: You are a senior business analyst writing concise executive report content.",
-      "Task: Analyze the provided summarized sales metrics and return practical business findings.",
+      this.buildRoleInstruction(),
+      this.buildTaskInstruction(),
+      this.buildConstraintBlock(),
+      this.buildOutputContract(),
+      this.buildSectionRules(),
+      this.buildDataBlock({ context, summary })
+    ].join("\n\n");
+  }
+
+  private static buildRoleInstruction(): string {
+    return "Role: You are a senior business analyst preparing executive-ready report content.";
+  }
+
+  private static buildTaskInstruction(): string {
+    return "Task: Analyze the summarized sales metrics and produce concise, professional, decision-ready insights.";
+  }
+
+  private static buildConstraintBlock(): string {
+    return [
       "Constraints:",
-      "- Use only provided facts.",
-      "- Keep wording clear and professional.",
-      "- Do not mention missing data or model limitations.",
-      "Output: Return ONLY valid JSON with this exact schema:",
-      '{"executiveSummary":"string","keyInsights":["string","string","string"],"problems":["string","string"],"recommendations":["string","string","string"]}',
-      "Section rules:",
+      "- Maintain a concise and professional tone.",
+      "- Do not repeat raw input lines or restate data verbatim.",
+      "- Use only the provided facts; no invented metrics.",
+      "- Do not mention model limitations or missing context.",
+      "- Return structured output only."
+    ].join("\n");
+  }
+
+  private static buildOutputContract(): string {
+    return [
+      "Output Contract:",
+      "- Return valid JSON matching this exact schema and field order:",
+      '{"executiveSummary":"string","keyInsights":["string","string","string"],"problems":["string","string"],"recommendations":["string","string","string"]}'
+    ].join("\n");
+  }
+
+  private static buildSectionRules(): string {
+    return [
+      "Section Rules:",
       "- executiveSummary: 2-3 sentences.",
-      "- keyInsights: exactly 3 bullet-style insights with numbers.",
-      "- problems: exactly 2 issues or risks.",
-      "- recommendations: exactly 3 concrete next steps.",
-      "",
+      "- keyInsights: exactly 3 quantified insights.",
+      "- problems: exactly 2 concrete issues or risks.",
+      "- recommendations: exactly 3 practical next actions."
+    ].join("\n");
+  }
+
+  private static buildDataBlock(input: {
+    context: PreprocessedSalesContext;
+    summary: SalesSummary;
+  }): string {
+    const { context, summary } = input;
+
+    return [
+      "Business Context:",
       `Company: ${context.companyName}`,
       `Period: ${context.period}`,
       `Records analyzed: ${context.recordCount}`,

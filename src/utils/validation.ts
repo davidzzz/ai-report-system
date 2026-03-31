@@ -2,6 +2,7 @@ import { SalesPayload, SaleRecord } from "../types/sales";
 import { HttpError } from "./http-error";
 
 const MAX_RECORDS = 5000;
+const MAX_TEXT_LENGTH = 150;
 
 function assertValidSaleRecord(record: unknown, index: number): asserts record is SaleRecord {
   if (!record || typeof record !== "object") {
@@ -13,6 +14,12 @@ function assertValidSaleRecord(record: unknown, index: number): asserts record i
   for (const field of requiredStringFields) {
     if (typeof candidate[field] !== "string" || !candidate[field]?.trim()) {
       throw new HttpError(400, `sales[${index}].${field} must be a non-empty string`, {
+        code: "INVALID_SALES_FIELD"
+      });
+    }
+
+    if (String(candidate[field]).trim().length > MAX_TEXT_LENGTH) {
+      throw new HttpError(400, `sales[${index}].${field} exceeds max length of ${MAX_TEXT_LENGTH}`, {
         code: "INVALID_SALES_FIELD"
       });
     }
@@ -37,6 +44,27 @@ function assertValidSaleRecord(record: unknown, index: number): asserts record i
   }
 }
 
+function validateOptionalTextField(value: unknown, fieldName: string): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    throw new HttpError(400, `${fieldName} must be a string`, { code: "INVALID_PAYLOAD" });
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.length > MAX_TEXT_LENGTH) {
+    throw new HttpError(400, `${fieldName} exceeds max length of ${MAX_TEXT_LENGTH}`, { code: "INVALID_PAYLOAD" });
+  }
+
+  return trimmed;
+}
+
 export function validateSalesPayload(payload: unknown): SalesPayload {
   if (!payload || typeof payload !== "object") {
     throw new HttpError(400, "Request body must be a JSON object", { code: "INVALID_PAYLOAD" });
@@ -58,8 +86,8 @@ export function validateSalesPayload(payload: unknown): SalesPayload {
   body.sales.forEach((record, index) => assertValidSaleRecord(record, index));
 
   return {
-    companyName: typeof body.companyName === "string" ? body.companyName.trim() : undefined,
-    period: typeof body.period === "string" ? body.period.trim() : undefined,
+    companyName: validateOptionalTextField(body.companyName, "companyName"),
+    period: validateOptionalTextField(body.period, "period"),
     sales: body.sales as SaleRecord[]
   };
 }
