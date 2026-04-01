@@ -4,7 +4,8 @@ import { logger } from "../utils/logger";
 
 export function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const start = process.hrtime.bigint();
-  const requestId = crypto.randomUUID();
+  const incomingRequestId = req.header("x-request-id");
+  const requestId = incomingRequestId && incomingRequestId.trim() ? incomingRequestId.trim() : crypto.randomUUID();
 
   req.headers["x-request-id"] = requestId;
   res.setHeader("x-request-id", requestId);
