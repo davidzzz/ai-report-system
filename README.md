@@ -108,14 +108,32 @@ Unlike typical AI demos, this system is built with **reliability, determinism, a
 
 ```
 src/
-├── services/
-│   └── ai.service.ts        # Core AI orchestration
-├── utils/
-│   └── prompt-builder.ts    # Prompt construction
-├── types/
-│   └── sales.ts             # Domain types
+├── app.ts
 ├── config/
-│   └── env.ts               # Environment config
+│   └── env.ts
+├── controllers/
+│   └── report.controller.ts
+├── middlewares/
+│   ├── error-handler.ts
+│   ├── rate-limit.ts
+│   └── request-logger.ts
+├── routes/
+│   └── report.routes.ts
+├── services/
+│   ├── ai.service.ts
+│   ├── data.service.ts
+│   ├── preprocess.service.ts
+│   └── report.service.ts
+├── types/
+│   └── sales.ts
+└── utils/
+    ├── api-response.ts
+    ├── async-handler.ts
+    ├── http-error.ts
+    ├── logger.ts
+    ├── openai-error.ts
+    ├── prompt-builder.ts
+    └── validation.ts
 ```
 
 ---
@@ -176,6 +194,16 @@ Returns clean, structured insights:
 
 ---
 
+## 🌐 API Endpoints
+
+* `GET /health` - basic liveness.
+* `GET /ready` - readiness details (OpenAI config + runtime metadata).
+* `POST /report/analyze` - returns JSON summary + insights.
+* `POST /report/analyze/stream` - streams insight chunks via SSE.
+* `POST /report/generate` - returns generated PDF report.
+
+---
+
 ## ⚙️ Design Principles
 
 ### Determinism over Creativity
@@ -231,6 +259,14 @@ Set environment variables:
 ```
 OPENAI_API_KEY=your_key
 OPENAI_MODEL=your_model
+REPORT_PAYLOAD_LIMIT_KB=512
+```
+
+Run checks/tests:
+
+```bash
+npm run check
+npm test
 ```
 
 ---

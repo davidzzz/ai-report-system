@@ -2,11 +2,11 @@ import OpenAI from "openai";
 import { ResponseStreamEvent } from "openai/resources/responses/responses";
 import { env } from "../config/env";
 import { logger } from "../utils/logger";
+import { parseOpenAiError } from "../utils/openai-error";
 import { PromptBuilder } from "../utils/prompt-builder";
 import { PreprocessedSalesContext, SalesSummary, StructuredInsights } from "../types/sales";
 
 const MAX_PROMPT_CHARACTERS = 12_000;
-const RETRYABLE_STATUS_CODES = new Set([408, 409, 429, 500, 502, 503, 504]);
 const AI_SCHEMA = {
   name: "business_insights",
   strict: true,
@@ -126,12 +126,16 @@ export class AiService {
         return await operation();
       } catch (error) {
         lastError = error;
-        const retryable = this.isRetryableError(error);
+        const errorMeta = parseOpenAiError(error);
+        const retryable = errorMeta.retryable;
         logger.warn("AI request attempt failed", {
           label,
           attempt,
-          retryable,
-          error: this.formatError(error)
+          retryable: errorMeta.retryable,
+          status: errorMeta.status,
+          code: errorMeta.code,
+          type: errorMeta.type,
+          error: errorMeta.message
         });
 
         if (!retryable || attempt >= env.openAiRetryAttempts) {
@@ -212,15 +216,6 @@ export class AiService {
     return Math.min(base + jitter, env.openAiRetryMaxDelayMs);
   }
 
-  private isRetryableError(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-
-    const status = (error as { status?: number }).status;
-    return status ? RETRYABLE_STATUS_CODES.has(status) : true;
-  }
-
   private isTextDeltaEvent(event: ResponseStreamEvent): event is ResponseStreamEvent & { delta: string } {
     return event.type === "response.output_text.delta";
   }
@@ -230,10 +225,7 @@ export class AiService {
   }
 
   private formatError(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
-    return String(error ?? "Unknown error");
+    return parseOpenAiError(error).message;
   }
 
   private assertInputWithinSizeLimit(prompt: string): void {

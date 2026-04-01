@@ -4,12 +4,24 @@ import { HttpError } from "../utils/http-error";
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
+let cleanupCounter = 0;
+const CLEANUP_INTERVAL_REQUESTS = 200;
 
 export function createRateLimiter(options?: { windowMs?: number; maxRequests?: number }) {
   const windowMs = options?.windowMs ?? 60_000;
   const maxRequests = options?.maxRequests ?? 30;
 
   return (req: Request, _res: Response, next: NextFunction): void => {
+    cleanupCounter += 1;
+    if (cleanupCounter % CLEANUP_INTERVAL_REQUESTS === 0) {
+      const now = Date.now();
+      for (const [bucketKey, bucket] of buckets.entries()) {
+        if (bucket.resetAt <= now) {
+          buckets.delete(bucketKey);
+        }
+      }
+    }
+
     const key = req.ip || "unknown";
     const now = Date.now();
     const current = buckets.get(key);

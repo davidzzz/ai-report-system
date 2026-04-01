@@ -20,6 +20,7 @@ export const env = {
   port: toPositiveInt(process.env.PORT, 3000),
   openAiApiKey: requireEnv("OPENAI_API_KEY"),
   openAiModel: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+  reportPayloadLimitKb: toPositiveInt(process.env.REPORT_PAYLOAD_LIMIT_KB, 512),
   reportRateLimitWindowMs: toPositiveInt(process.env.REPORT_RATE_LIMIT_WINDOW_MS, 60_000),
   reportRateLimitMax: toPositiveInt(process.env.REPORT_RATE_LIMIT_MAX, 30),
   openAiTimeoutMs: toPositiveInt(process.env.OPENAI_TIMEOUT_MS, 12_000),
