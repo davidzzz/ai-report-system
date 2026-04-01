@@ -108,32 +108,14 @@ Unlike typical AI demos, this system is built with **reliability, determinism, a
 
 ```
 src/
-├── app.ts
-├── config/
-│   └── env.ts
-├── controllers/
-│   └── report.controller.ts
-├── middlewares/
-│   ├── error-handler.ts
-│   ├── rate-limit.ts
-│   └── request-logger.ts
-├── routes/
-│   └── report.routes.ts
 ├── services/
-│   ├── ai.service.ts
-│   ├── data.service.ts
-│   ├── preprocess.service.ts
-│   └── report.service.ts
+│   └── ai.service.ts        # Core AI orchestration
+├── utils/
+│   └── prompt-builder.ts    # Prompt construction
 ├── types/
-│   └── sales.ts
-└── utils/
-    ├── api-response.ts
-    ├── async-handler.ts
-    ├── http-error.ts
-    ├── logger.ts
-    ├── openai-error.ts
-    ├── prompt-builder.ts
-    └── validation.ts
+│   └── sales.ts             # Domain types
+├── config/
+│   └── env.ts               # Environment config
 ```
 
 ---
@@ -194,16 +176,6 @@ Returns clean, structured insights:
 
 ---
 
-## 🌐 API Endpoints
-
-* `GET /health` - basic liveness.
-* `GET /ready` - readiness details (OpenAI config + runtime metadata).
-* `POST /report/analyze` - returns JSON summary + insights.
-* `POST /report/analyze/stream` - streams insight chunks via SSE.
-* `POST /report/generate` - returns generated PDF report.
-
----
-
 ## ⚙️ Design Principles
 
 ### Determinism over Creativity
@@ -221,6 +193,77 @@ Prompts are treated as first-class architecture.
 ### Fail Gracefully
 
 Retries + fallbacks prevent system crashes.
+
+---
+
+## 🔄 Before vs After (What This System Actually Does)
+
+### 📥 Raw Input (Before)
+
+```json
+{
+  "companyName": "Acme Corp",
+  "period": "Jan 2026",
+  "recordCount": 1240,
+  "totalSales": 125000.5,
+  "totalOrders": 320,
+  "averageOrderValue": 390.63,
+  "topProduct": { "name": "Product A", "revenue": 45000 },
+  "lowestProduct": { "name": "Product D", "revenue": 5000 },
+  "trend": "upward",
+  "notes": ["minor missing dates", "duplicates removed"]
+}
+```
+
+👉 This is **useful but not decision-ready**. A human still needs to:
+
+* Interpret trends
+* Identify risks
+* Suggest actions
+
+---
+
+### 📤 AI Output (After)
+
+```json
+{
+  "executiveSummary": "Sales performance shows a strong upward trend driven primarily by Product A, with overall revenue growth supported by stable order volume.",
+  "keyInsights": [
+    "Product A contributes ~36% of total revenue, indicating strong product-market fit",
+    "Average order value remains high at 390.63, suggesting effective pricing strategy",
+    "Overall sales trend is upward, signaling sustained demand growth"
+  ],
+  "problems": [
+    "Revenue concentration risk due to heavy reliance on a single product",
+    "Data quality issues detected in date records and duplicates"
+  ],
+  "recommendations": [
+    "Diversify revenue by promoting mid-tier products",
+    "Implement stricter data validation during ingestion",
+    "Monitor Product A performance to anticipate demand shifts"
+  ]
+}
+```
+
+👉 This is **executive-ready output**:
+
+* Clear summary
+* Quantified insights
+* Identified risks
+* Actionable recommendations
+
+---
+
+### 🧠 Transformation Value
+
+| Stage     | Value          |
+| --------- | -------------- |
+| Raw Data  | Informational  |
+| AI Output | Decision-ready |
+
+This system bridges the gap between:
+
+> **Data → Insight → Action**
 
 ---
 
@@ -259,14 +302,6 @@ Set environment variables:
 ```
 OPENAI_API_KEY=your_key
 OPENAI_MODEL=your_model
-REPORT_PAYLOAD_LIMIT_KB=512
-```
-
-Run checks/tests:
-
-```bash
-npm run check
-npm test
 ```
 
 ---
